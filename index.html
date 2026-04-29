@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Esame Certificazione GA4 - 40 Domande</title>
+    <style>
+        :root {
+            --text-main: #202124;
+            --text-secondary: #5f6368;
+            --google-blue: #1a73e8;
+            --border-light: #dadce0;
+            --correct: #1e8e3e;
+            --wrong: #d93025;
+            --bg-gray: #f8f9fa;
+        }
+
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            background-color: #ffffff;
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #quiz-wrapper {
+            max-width: 850px;
+            width: 100%;
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .header { border-bottom: 1px solid var(--border-light); margin-bottom: 20px; padding-bottom: 10px; }
+        h1 { font-size: 24px; margin: 0; color: var(--text-main); }
+        .stats { color: var(--text-secondary); font-size: 14px; margin-top: 5px; }
+
+        .screen { display: none; }
+        .active { display: block; }
+
+        .question-title { font-size: 18px; font-weight: 500; margin-bottom: 20px; line-height: 1.4; }
+        
+        .options-list { list-style: none; padding: 0; }
+        .option-item {
+            border: 1px solid var(--border-light);
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+        }
+        .option-item:hover { background-color: var(--bg-gray); }
+        .option-item.selected { border-color: var(--google-blue); background-color: #e8f0fe; }
+
+        .btn {
+            background-color: var(--google-blue);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+        .btn:hover { background-color: #1765cc; }
+        .btn-secondary { background-color: transparent; color: var(--google-blue); border: 1px solid var(--border-light); margin-right: 10px; }
+
+        .explanation-box {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 6px;
+            display: none;
+            font-size: 15px;
+        }
+        .explanation-box.visible { display: block; }
+        .correct-style { background-color: #e6f4ea; border-left: 5px solid var(--correct); color: #137333; }
+        .wrong-style { background-color: #fce8e6; border-left: 5px solid var(--wrong); color: #a50e0e; }
+
+        .progress-container { width: 100%; background: #eee; height: 6px; border-radius: 3px; margin-bottom: 20px; }
+        .progress-bar { height: 100%; background: var(--google-blue); width: 0%; border-radius: 3px; transition: width 0.3s; }
+
+        .multi-hint { font-size: 12px; color: var(--google-blue); font-style: italic; margin-bottom: 10px; display: block; }
+    </style>
+</head>
+<body>
+
+<div id="quiz-wrapper">
+    <!-- SELECTION SCREEN -->
+    <div id="selection-screen" class="screen">
+        <div class="header">
+            <h1>Seleziona un Test</h1>
+        </div>
+        <p>Scegli il test da avviare:</p>
+        <div id="test-list" class="options-list"></div>
+    </div>
+
+    <!-- START SCREEN -->
+    <div id="start-screen" class="screen active">
+        <div class="header">
+            <h1>Preparazione Certificazione </h1>
+            <div class="stats" id="quiz-title"></div>
+        </div>
+        <p>Il test include <strong id="q-count">40 domande</strong> estratte dai moduli ufficiali Skillshop.</p>
+        <ul>
+            <li id="q-threshold">Soglia di superamento: 80% (32/40)</li>
+            <li>Tempo consigliato: 60 minuti</li>
+            <li>Spiegazioni dettagliate dopo ogni risposta</li>
+        </ul>
+        <button class="btn" onclick="app.start()">Inizia il test</button>
+    </div>
+
+    <!-- QUIZ SCREEN -->
+    <div id="quiz-screen" class="screen">
+        <div class="progress-container"><div id="progress-bar" class="progress-bar"></div></div>
+        <div id="status-text" class="stats"></div>
+        <div id="question-area">
+            <h2 id="q-text" class="question-title"></h2>
+            <span id="q-hint" class="multi-hint"></span>
+            <div id="q-options" class="options-list"></div>
+        </div>
+        
+        <div id="explanation" class="explanation-box"></div>
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
+            <div>
+                <button id="submit-btn" class="btn" style="margin-top: 0;" onclick="app.check()">Verifica Risposta</button>
+                <button id="next-btn" class="btn" style="display:none; margin-top: 0;" onclick="app.next()">Successiva</button>
+            </div>
+            <div>
+                <button id="skip-btn" class="btn btn-secondary" style="margin-top: 0; padding: 8px 15px; font-size: 13px;" onclick="app.skip()">Salta</button>
+                <button id="index-btn" class="btn btn-secondary" style="display:inline-block; margin-top: 0; padding: 8px 15px; font-size: 13px;" onclick="app.showIndex()">Indice</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- INDEX SCREEN -->
+    <div id="index-screen" class="screen">
+        <div class="header">
+            <h1>Indice Domande</h1>
+        </div>
+        <p>Riepilogo delle domande. Le domande con il bordo blu sono da rispondere.</p>
+        <div id="index-grid" style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 20px;"></div>
+        <div style="display: flex; justify-content: center; gap: 10px;">
+            <button class="btn btn-secondary" onclick="app.resume()">Torna al Quiz</button>
+            <button class="btn" onclick="app.showResults()">Termina Test</button>
+        </div>
+    </div>
+
+    <!-- RESULT SCREEN -->
+    <div id="result-screen" class="screen">
+        <h1>Risultato Finale</h1>
+        <div id="final-score" style="font-size: 48px; margin: 20px 0;"></div>
+        <div id="final-msg"></div>
+        <button class="btn" onclick="location.reload()">Ricomincia</button>
+    </div>
+</div>
+<script>
+/**
+ * DATABASE DOMANDE (40 DOMANDE REALI GA4)
+ */
+
+
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+}
+
+const app = {
+    currentIndex: 0,
+    score: 0,
+    selected: [],
+    answers: {},
+
+    init() {
+        console.log("Simulatore GA4 pronto.");
+        document.getElementById('quiz-title').innerText = Quiz;
+
+        const totalQuestions = questionBank.length;
+        const passingScore = Math.ceil(totalQuestions * 0.8);
+        document.getElementById('q-count').innerText = `${totalQuestions} domande`;
+        document.getElementById('q-threshold').innerText = `Soglia di superamento: 80% (${passingScore}/${totalQuestions})`;
+    },
+
+    start() {
+	shuffleArray(questionBank);
+        this.answers = {};
+        document.getElementById('start-screen').classList.remove('active');
+        document.getElementById('quiz-screen').classList.add('active');
+        this.renderQuestion();
+    },
+
+    renderQuestion() {
+        const qData = questionBank[this.currentIndex];
+        const answeredCount = Object.keys(this.answers).length;
+        let statusText = `Domanda ${this.currentIndex + 1} di ${questionBank.length}`;
+        if (answeredCount > 0) {
+            const scorePercentage = Math.round((this.score / answeredCount) * 100);
+            statusText += ` score: ${scorePercentage}%`;
+        }
+        document.getElementById('status-text').innerText = statusText;
+        document.getElementById('progress-bar').style.width = `${((this.currentIndex) / questionBank.length) * 100}%`;
+        
+        document.getElementById('q-text').innerText = qData.q;
+        document.getElementById('q-hint').innerText = qData.correct.length > 1 ? `(Seleziona ${qData.correct.length} risposte)` : "";
+        
+        const optionsDiv = document.getElementById('q-options');
+        optionsDiv.innerHTML = "";
+        this.selected = [];
+        
+        qData.options.forEach((opt, idx) => {
+            const item = document.createElement('div');
+            item.className = 'option-item';
+            item.innerText = opt;
+            item.onclick = () => this.toggleSelect(item, idx);
+            optionsDiv.appendChild(item);
+        });
+
+        document.getElementById('explanation').className = "explanation-box";
+        document.getElementById('submit-btn').style.display = "inline-block";
+        document.getElementById('next-btn').style.display = "none";
+        document.getElementById('skip-btn').style.display = "inline-block";
+        document.getElementById('index-btn').style.display = "inline-block";
+    },
+
+    toggleSelect(el, idx) {
+        const qData = questionBank[this.currentIndex];
+        if (qData.correct.length === 1) {
+            // Single choice
+            document.querySelectorAll('.option-item').forEach(i => i.classList.remove('selected'));
+            el.classList.add('selected');
+            this.selected = [idx];
+        } else {
+            // Multi choice
+            if (this.selected.includes(idx)) {
+                this.selected = this.selected.filter(i => i !== idx);
+                el.classList.remove('selected');
+            } else {
+                this.selected.push(idx);
+                el.classList.add('selected');
+            }
+        }
+    },
+
+    check() {
+        if (this.selected.length === 0) {
+            alert("Scegli almeno una risposta prima di continuare.");
+            return;
+        }
+
+        const qData = questionBank[this.currentIndex];
+        const isCorrect = JSON.stringify(this.selected.sort()) === JSON.stringify(qData.correct.sort());
+        
+        this.answers[this.currentIndex] = { isCorrect: isCorrect };
+        this.score = Object.values(this.answers).filter(a => a.isCorrect).length;
+        const answeredCount = Object.keys(this.answers).length;
+        const percentage = Math.round((this.score / answeredCount) * 100);
+        document.getElementById('status-text').innerText = `Domanda ${this.currentIndex + 1} di ${questionBank.length} score: ${percentage}%`;
+
+        // Formattazione della spiegazione con paragrafi/interlinee dopo ogni fine frase
+        const formattedExplanation = qData.explanation.replace(/(\S+)([.?!])\s+(?=[A-ZÈÉÀÌÒÙ*])/g, (match, word, punc) => {
+            const cleanWord = word.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+            if (cleanWord === 'es' || cleanWord === 'ecc' || (!isNaN(cleanWord) && cleanWord !== '')) return match;
+            return `${word}${punc}<br><br>`;
+        });
+
+        const exp = document.getElementById('explanation');
+        exp.innerHTML = `<strong>${isCorrect ? 'Corretto!' : 'Non corretto.'}</strong><br><br>${formattedExplanation}`;
+        exp.className = `explanation-box visible ${isCorrect ? 'correct-style' : 'wrong-style'}`;
+        
+        document.getElementById('submit-btn').style.display = "none";
+        document.getElementById('next-btn').style.display = "inline-block";
+        document.getElementById('skip-btn').style.display = "none";
+        document.getElementById('index-btn').style.display = "inline-block";
+    },
+
+    skip() {
+        this.currentIndex++;
+        if (this.currentIndex < questionBank.length) {
+            this.renderQuestion();
+        } else {
+            this.showIndex();
+        }
+    },
+
+    next() {
+        this.currentIndex++;
+        if (this.currentIndex < questionBank.length) {
+            this.renderQuestion();
+        } else {
+            if (Object.keys(this.answers).length < questionBank.length) {
+                this.showIndex();
+            } else {
+                this.showResults();
+            }
+        }
+    },
+
+    showIndex() {
+        document.getElementById('quiz-screen').classList.remove('active');
+        document.getElementById('index-screen').classList.add('active');
+        
+        const grid = document.getElementById('index-grid');
+        grid.innerHTML = '';
+        questionBank.forEach((q, idx) => {
+            const btn = document.createElement('button');
+            btn.innerText = `${idx + 1}`;
+            btn.className = 'btn btn-secondary';
+            btn.style.margin = '0';
+            btn.style.width = '45px';
+            btn.style.height = '45px';
+            btn.style.padding = '0';
+            btn.style.fontWeight = 'bold';
+            
+            if (this.answers[idx]) {
+                btn.style.backgroundColor = this.answers[idx].isCorrect ? '#e6f4ea' : '#fce8e6';
+                btn.style.borderColor = this.answers[idx].isCorrect ? 'var(--correct)' : 'var(--wrong)';
+                btn.style.color = this.answers[idx].isCorrect ? '#137333' : '#a50e0e';
+                btn.title = "Risposta registrata";
+            } else {
+                btn.style.backgroundColor = '#fff';
+                btn.style.borderColor = 'var(--google-blue)';
+                btn.style.color = 'var(--google-blue)';
+                btn.title = "Da rispondere";
+            }
+            btn.onclick = () => this.goToQuestion(idx);
+            grid.appendChild(btn);
+        });
+    },
+
+    goToQuestion(idx) {
+        this.currentIndex = idx;
+        document.getElementById('index-screen').classList.remove('active');
+        document.getElementById('quiz-screen').classList.add('active');
+        this.renderQuestion();
+    },
+
+    resume() {
+        document.getElementById('index-screen').classList.remove('active');
+        document.getElementById('quiz-screen').classList.add('active');
+        
+        if (this.currentIndex >= questionBank.length) {
+            let firstUnanswered = 0;
+            for (let i = 0; i < questionBank.length; i++) {
+                if (!this.answers[i]) {
+                    firstUnanswered = i;
+                    break;
+                }
+            }
+            this.currentIndex = firstUnanswered;
+            this.renderQuestion();
+        }
+    },
+
+    showResults() {
+        document.getElementById('quiz-screen').classList.remove('active');
+        document.getElementById('index-screen').classList.remove('active');
+        document.getElementById('result-screen').classList.add('active');
+        
+        const finalScore = Math.round((this.score / questionBank.length) * 100);
+        const scoreDiv = document.getElementById('final-score');
+        scoreDiv.innerText = `${finalScore}%`;
+        scoreDiv.style.color = finalScore >= 80 ? 'var(--correct)' : 'var(--wrong)';
+        
+        document.getElementById('final-msg').innerHTML = `
+            <p>Hai risposto correttamente a ${this.score} domande su ${questionBank.length}.</p>
+            <p>${finalScore >= 80 ? '<strong>PROMOSSO!</strong> Sei pronto per l\'esame ufficiale.' : '<strong>NON PASSATO.</strong> Ti consiglio di rileggere le spiegazioni e riprovare.'}</p>
+        `;
+    }
+};
+
+window.onload = () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const testName = urlParams.get('test');
+
+    if (testName) {
+        // Caricamento dinamico del file js basato sulla querystring
+        const script = document.createElement('script');
+        script.src = `./questions/${testName}.js`;
+        script.onload = () => app.init();
+        script.onerror = () => {
+            alert(`Impossibile caricare il test: ${testName}.js`);
+            window.location.href = window.location.pathname; // Torna alla selezione
+        };
+        document.body.appendChild(script);
+    } else {
+        // Mostra la schermata di selezione
+        document.getElementById('start-screen').classList.remove('active');
+        document.getElementById('selection-screen').classList.add('active');
+        
+        // NOTA: JavaScript lato client non può esplorare automaticamente i file in una cartella.
+        // Aggiungi qui i nomi dei file disponibili nella cartella "questions" (con o senza .js).
+        const availableTests = ['g4-questions', 'g4-questions-hard','g-ads-search-questions.js']; // Esempio di file disponibili
+        const listDiv = document.getElementById('test-list');
+        
+        availableTests.forEach(test => {
+            const item = document.createElement('div');
+            item.className = 'option-item';
+            item.innerText = test.replace(/\.js$/, ''); // Non mostrare ".js" nel testo
+            item.onclick = () => window.location.search = `?test=${test.replace(/\.js$/, '')}`;
+            listDiv.appendChild(item);
+        });
+    }
+};
+</script>
+
+</body>
+</html>
